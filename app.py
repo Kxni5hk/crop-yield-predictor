@@ -226,7 +226,11 @@ with predict_tab:
                 try:
                     from explainability import explain_prediction
                     with st.spinner("Calculating SHAP contributions…"):
-                        explanation = explain_prediction(model, result["inputs"])
+                        explanation_model = load_model(
+                            "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib",
+                            "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b",
+                        )
+                        explanation = explain_prediction(explanation_model, result["inputs"])
                     st.session_state["last_explanation"] = explanation
                 except Exception as exc:
                     st.warning("Explanation could not be calculated; the yield prediction above is unaffected.")
