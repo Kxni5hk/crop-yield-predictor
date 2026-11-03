@@ -222,16 +222,17 @@ with predict_tab:
         st.download_button("⬇ Download input and result as CSV", data=result["inputs"].assign(Predicted_Yield_tons_per_hectare=pred).to_csv(index=False), file_name="cropcast_prediction.csv", mime="text/csv")
         with st.expander("🔎 Why this prediction? · SHAP explanation", expanded=False):
             st.caption("Optional explanation of the trained model's prediction, not a causal statement about farming.")
-            if st.button("Calculate feature contributions", key="explain_button"):
+            if "last_explanation" not in st.session_state:
                 try:
                     from explainability import explain_prediction
-                    with st.spinner("Calculating SHAP contributions…"):
+                    with st.spinner("Calculating SHAP feature contributions…"):
                         explanation_model = load_model(
                             "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib",
                             "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b",
                         )
-                        explanation = explain_prediction(explanation_model, result["inputs"])
-                    st.session_state["last_explanation"] = explanation
+                        st.session_state["last_explanation"] = explain_prediction(
+                            explanation_model, result["inputs"]
+                        )
                 except Exception as exc:
                     st.warning("Explanation could not be calculated; the yield prediction above is unaffected.")
                     st.code(str(exc))
