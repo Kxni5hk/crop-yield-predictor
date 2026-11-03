@@ -70,6 +70,35 @@ h1 { font-weight: 800!important; }
 [data-testid="stTabs"] button {font-weight:600;}
 .stAlert {border-radius:14px;}
 footer {visibility:hidden;}
+/* High-contrast accessibility patch for the dark Streamlit interface. */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stForm"] label,
+[data-testid="stForm"] label p {
+  color: #edf9f0 !important;
+  opacity: 1 !important;
+  font-weight: 600 !important;
+}
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
+  color: #bcd7c7 !important;
+  opacity: 1 !important;
+}
+button[data-baseweb="tab"],
+[data-testid="stTabs"] button[role="tab"] {
+  color: #dceee1 !important;
+  opacity: 1 !important;
+}
+button[data-baseweb="tab"][aria-selected="true"],
+[data-testid="stTabs"] button[aria-selected="true"] {
+  color: #b7f5aa !important;
+  font-weight: 700 !important;
+}
+/* Keep focus borders visible for keyboard users. */
+[data-testid="stForm"] :focus-visible {
+  outline: 2px solid #a8efa6 !important;
+  outline-offset: 2px;
+}
 </style>"""
 st.markdown(CSS, unsafe_allow_html=True)
 
