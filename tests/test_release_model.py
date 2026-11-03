@@ -10,6 +10,7 @@ import joblib
 import pandas as pd
 
 from explainability import explain_prediction
+from sensitivity import compare_one_feature_at_a_time
 
 EXPECTED_SHA256 = "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b"
 
@@ -37,6 +38,11 @@ def main(model_path):
     assert abs(explanation["prediction"] - prediction) < 1e-8
     assert explanation["reconstruction_error"] < 0.01
     assert len(explanation["table"]) == 8
+    sensitivity_baseline, scenario_table = compare_one_feature_at_a_time(model, example)
+    assert abs(sensitivity_baseline - prediction) < 1e-8
+    assert len(scenario_table) == 8
+    assert scenario_table["Change vs current (t/ha)"].notna().all()
+    print("PASS: lightweight sensitivity on real Model B")
     print("PASS: real saved model prediction:", prediction)
     print("PASS: reconstruction error:", explanation["reconstruction_error"])
 
