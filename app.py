@@ -205,6 +205,7 @@ with predict_tab:
             pred = float(model.predict(input_row)[0])
             if not np.isfinite(pred):
                 raise ValueError("Model returned a non-finite prediction.")
+            st.session_state.pop("last_explanation", None)
             st.session_state["last_prediction"]={"yield": pred,"crop":crop,"region":region,"inputs":input_row}
         except Exception as exc:
             st.error("Could not generate a prediction. Check model configuration and deployment logs.")
@@ -219,6 +220,27 @@ with predict_tab:
         st.markdown(f"""<div class="result"><div class="result-title">Estimated yield • {result['crop']}</div><div class="result-number">{pred:,.2f} <span class="result-unit">tons / hectare</span></div><div class="result-unit">≈ {pred*1000:,.0f} kg per hectare &nbsp; · &nbsp; {result['region']} region</div></div>""", unsafe_allow_html=True)
         st.caption("⚠️ Educational model estimate. Not a guarantee, and not independently validated for real farms or future seasons.")
         st.download_button("⬇ Download input and result as CSV", data=result["inputs"].assign(Predicted_Yield_tons_per_hectare=pred).to_csv(index=False), file_name="cropcast_prediction.csv", mime="text/csv")
+        with st.expander("🔎 Why this prediction? · SHAP explanation", expanded=False):
+            st.caption("Optional explanation of the trained model's prediction, not a causal statement about farming.")
+            if st.button("Calculate feature contributions", key="explain_button"):
+                try:
+                    from explainability import explain_prediction
+                    with st.spinner("Calculating SHAP contributions…"):
+                        explanation = explain_prediction(model, result["inputs"])
+                    st.session_state["last_explanation"] = explanation
+                except Exception as exc:
+                    st.warning("Explanation could not be calculated; the yield prediction above is unaffected.")
+                    st.code(str(exc))
+            explanation = st.session_state.get("last_explanation")
+            if explanation:
+                st.write(f"**Model baseline:** {explanation['baseline']:.3f} t/ha")
+                st.write(f"**SHAP reconstruction error:** {explanation['reconstruction_error']:.6f} t/ha")
+                contributions = explanation["table"].drop(columns=["Absolute impact"])
+                st.dataframe(contributions.style.format({"Contribution (t/ha)": "{:+.3f}"}), hide_index=True, use_container_width=True)
+                plot = explanation["table"].sort_values("Contribution (t/ha)")
+                st.bar_chart(plot.set_index("Feature")["Contribution (t/ha)"], horizontal=True)
+                st.caption("Positive and negative contributions are relative to the model baseline; they do not prove cause and effect.")
+
     elif not LOCAL_MODEL.exists() and not setting("MODEL_URL"):
         st.info("Website design is ready. Add a model-release URL in Streamlit Cloud Secrets to activate live predictions. The app never substitutes fake results.")
 
