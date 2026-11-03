@@ -1,38 +1,93 @@
-# CropCast — Crop Yield Prediction Website
+# 🌾 CropCast AI — Crop Yield Prediction
 
-Modern Streamlit interface powered by the actual trained Random Forest Model B.
+A public educational machine-learning website that estimates crop yield under user-selected agricultural conditions. Built with **Python, Streamlit, and a trained scikit-learn Random Forest Regressor**.
 
-## Deployment: Streamlit Community Cloud + GitHub Release
+## 🌐 Live website
 
-### Why a GitHub Release?
-The .joblib model is approximately 147 MB, exceeding GitHub's usual 100 MB limit for repository files. GitHub Release assets permit a much larger file, so the source repository stays small.
+**[Open CropCast AI](https://cropcast-yield-ai.streamlit.app/)**
 
-1. Create a **public GitHub repository** named `crop-yield-predictor`.
-2. Upload these files to the repository root: `app.py`, `requirements.txt`, `README.md`, `.streamlit/config.toml`, and the whole `assets` folder. Do not upload the .joblib model as a regular repository file.
-3. In the repository, click **Releases → Draft a new release**, add tag `v1.0`, and attach your trusted model file `crop_yield_model_b.joblib` (provided separately). Publish release.
-4. Copy the actual asset download URL from the published release (your username will be in it). Format: `https://github.com/<username>/crop-yield-predictor/releases/download/v1.0/crop_yield_model_b.joblib`
-5. Visit https://share.streamlit.io/ and sign in with GitHub. Choose the repository, main branch, and entrypoint `app.py`. In Advanced settings, choose Python 3.11 if offered, and add a Secret:
+> **URL maintenance:** This is the original verified public URL. If the Streamlit subdomain is renamed in **App settings → General → App URL**, update the link above to your *actual new working URL*.
 
-   ```toml
-   MODEL_URL = "https://github.com/<username>/crop-yield-predictor/releases/download/v1.0/crop_yield_model_b.joblib"
-   MODEL_SHA256 = "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b"
-   ```
+## ✅ Features
 
-   The SHA256 above matches the model extracted from the supplied project ZIP. **If you use another model file (such as a retrained final model), remove MODEL_SHA256 or replace it with the new file's actual checksum.**
+- Interactive inputs for **crop**, **soil type**, **region**, **rainfall**, **temperature**, **weather condition**, **fertilizer use**, and **irrigation use**.
+- Crop yield prediction in **tons per hectare** and **kg per hectare** using the trained model (not hardcoded output).
+- A performance tab with comparison of two model variants and error plots.
+- An explanation of the project pipeline, model assumptions, and limitations.
+- CSV export of prediction inputs and results.
+- Dark, responsive UI with improved high-contrast labels and navigation tabs.
 
-6. Click **Deploy** and then test a prediction. The service downloads the ~147 MB model on first inference; subsequent requests use the cached model while the app stays running.
+## 🧠 ML approach
 
-## Local testing
+- **Learning task:** Supervised regression
+- **Algorithm:** Random Forest Regressor
+- **Target:** `Yield_tons_per_hectare`
+- **Original records loaded:** 336,776 (10 columns)
+- **Records after excluding negative targets:** 336,698
+- **Development sample:** 50,000 rows
+- **Training/test split:** 40,000 / 10,000 (random split)
+- **Model A:** 9 features, including `Days_to_Harvest`
+- **Model B (deployed):** 8 features; excludes `Days_to_Harvest`
 
-Place the trusted `crop_yield_model_b.joblib` next to `app.py` or set `MODEL_URL`, then run:
+### Evaluation on the held-out random test split
+
+| Metric | Model A | Model B (website) |
+|---|---:|---:|
+| RMSE (tons/hectare) | 0.5211 | 0.5233 |
+| MAE (tons/hectare) | 0.4156 | 0.4175 |
+| R² | 0.9039 | 0.9031 |
+
+These values come from the original project experiment. **R² is not the same as percentage prediction accuracy**, and scores from a random split do not establish performance on new farms or future seasons.
+
+## 🛠️ Technology
+
+- Python, pandas, NumPy
+- scikit-learn 1.6.1 (model serialization compatibility)
+- Streamlit Community Cloud
+- GitHub Releases for the large trusted `.joblib` model asset
+
+## 📁 Repository layout
+
+```text
+crop-yield-predictor/
+├── app.py
+├── requirements.txt
+├── README.md
+├── .gitignore
+├── assets/
+│   ├── model_comparison.csv
+│   ├── crop_wise_performance.png
+│   └── residual_analysis.png
+└── .streamlit/
+    └── config.toml
+```
+
+## 🚀 Run locally
+
+Use a Python version compatible with the pinned dependencies (for example Python 3.12).
 
 ```bash
 python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-Use Python 3.11 and scikit-learn 1.6.1 for best compatibility with the saved model.
+The deployed `app.py` downloads the trusted pretrained Model B from the pinned public GitHub Release `v1.0.1` on first inference, checks its SHA-256, then loads it with `joblib`. A local test can also load a trusted file called `crop_yield_model_b.joblib` placed beside `app.py`.
 
-## Responsible-use notes
+**Model release:** [CropCast Model B v1.0.1](https://github.com/Kxni5hk/crop-yield-predictor/releases/tag/v1.0.1)
 
-This is a research/education demonstration; data realism, provenance, seasonal forecasting performance, and generalization to external farms are not established. Do not use the model as the sole basis for farming decisions. Public release assets and public repos are visible to everyone. Upload only materials you have rights to publish.
+> Never load `.joblib` files from untrusted sources. The model contains Python pickle data. Avoid uploading raw private farm or user data to the public repository.
+
+## ⚠️ Limitations & responsible use
+
+This is an **academic research prototype**, not a certified agricultural forecasting system. The dataset's original provenance and field realism still require independent verification. Rainfall and temperature values are inputs or scenarios, not automatically retrieved weather forecasts. The model has **not been independently validated** on new farms, climates, or growing seasons. Do not use it as the sole basis for crop-management or financial decisions.
+
+## 📌 Roadmap
+
+- Confirm and cite original Kaggle dataset source and license
+- Evaluate generalization on independent seasons and regions
+- Integrate reliable weather forecasts and soil measurements
+- Add documented prediction uncertainty and model monitoring
+
+---
+
+**Project:** CropCast AI · Crop Yield Prediction Research Prototype
