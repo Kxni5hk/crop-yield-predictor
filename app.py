@@ -188,7 +188,7 @@ with predict_tab:
             temperature = st.number_input("Temperature (°C)", min_value=15.0, max_value=40.0, value=27.5, step=0.5)
             weather = st.selectbox("Weather conditions", WEATHER)
             irrigation = st.selectbox("Irrigation used / planned", [True,False], format_func=lambda v: "Yes" if v else "No")
-        submitted = st.form_submit_button("✨  Predict crop yield", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("✨  Predict crop yield", width="stretch", type="primary")
 
     if submitted:
         input_row = pd.DataFrame([{
@@ -205,7 +205,7 @@ with predict_tab:
             pred = float(model.predict(input_row)[0])
             if not np.isfinite(pred):
                 raise ValueError("Model returned a non-finite prediction.")
-            st.session_state.pop("last_explanation", None)
+            st.session_state["show_what_if"] = False
             st.session_state["last_prediction"]={"yield": pred,"crop":crop,"region":region,"inputs":input_row}
         except Exception as exc:
             st.error("Could not generate a prediction. Check model configuration and deployment logs.")
@@ -220,31 +220,38 @@ with predict_tab:
         st.markdown(f"""<div class="result"><div class="result-title">Estimated yield • {result['crop']}</div><div class="result-number">{pred:,.2f} <span class="result-unit">tons / hectare</span></div><div class="result-unit">≈ {pred*1000:,.0f} kg per hectare &nbsp; · &nbsp; {result['region']} region</div></div>""", unsafe_allow_html=True)
         st.caption("⚠️ Educational model estimate. Not a guarantee, and not independently validated for real farms or future seasons.")
         st.download_button("⬇ Download input and result as CSV", data=result["inputs"].assign(Predicted_Yield_tons_per_hectare=pred).to_csv(index=False), file_name="cropcast_prediction.csv", mime="text/csv")
-        with st.expander("🔎 Why this prediction? · SHAP explanation", expanded=False):
-            st.caption("Optional explanation of the trained model's prediction, not a causal statement about farming.")
-            if "last_explanation" not in st.session_state:
+        with st.expander("🔎 Explore prediction sensitivity · lightweight", expanded=False):
+            st.caption(
+                "Optional one-feature-at-a-time model scenarios. This is not SHAP, "
+                "an attribution of the actual yield, or evidence of causal farming effects."
+            )
+            if st.checkbox("Show what-if comparisons", key="show_what_if", value=False):
                 try:
-                    from explainability import explain_prediction
-                    with st.spinner("Calculating SHAP feature contributions…"):
-                        explanation_model = load_model(
-                            "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib",
-                            "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b",
-                        )
-                        st.session_state["last_explanation"] = explain_prediction(
-                            explanation_model, result["inputs"]
-                        )
+                    from sensitivity import compare_one_feature_at_a_time
+                    scenario_model = load_model(
+                        "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib",
+                        "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b",
+                    )
+                    current_yield, scenarios = compare_one_feature_at_a_time(
+                        scenario_model, result["inputs"]
+                    )
+                    st.write(f"**Current prediction:** {current_yield:.3f} t/ha")
+                    st.dataframe(
+                        scenarios.style.format({
+                            "Scenario yield (t/ha)": "{:.3f}",
+                            "Change vs current (t/ha)": "{:+.3f}",
+                        }),
+                        hide_index=True,
+                        width="stretch",
+                    )
+                    st.caption(
+                        "Each row changes only the indicated input to the displayed "
+                        "alternative; other inputs remain fixed. This is a model "
+                        "sensitivity test, not a recommended farming action."
+                    )
                 except Exception as exc:
-                    st.warning("Explanation could not be calculated; the yield prediction above is unaffected.")
+                    st.warning("Sensitivity comparison unavailable; your yield prediction remains valid.")
                     st.code(str(exc))
-            explanation = st.session_state.get("last_explanation")
-            if explanation:
-                st.write(f"**Model baseline:** {explanation['baseline']:.3f} t/ha")
-                st.write(f"**SHAP reconstruction error:** {explanation['reconstruction_error']:.6f} t/ha")
-                contributions = explanation["table"].drop(columns=["Absolute impact"])
-                st.dataframe(contributions.style.format({"Contribution (t/ha)": "{:+.3f}"}), hide_index=True, use_container_width=True)
-                plot = explanation["table"].sort_values("Contribution (t/ha)")
-                st.bar_chart(plot.set_index("Feature")["Contribution (t/ha)"], horizontal=True)
-                st.caption("Positive and negative contributions are relative to the model baseline; they do not prove cause and effect.")
 
     elif not LOCAL_MODEL.exists() and not setting("MODEL_URL"):
         st.info("Website design is ready. Add a model-release URL in Streamlit Cloud Secrets to activate live predictions. The app never substitutes fake results.")
@@ -253,13 +260,13 @@ with performance_tab:
     st.markdown("### Evidence from model evaluation")
     st.caption("Values are from the previously supplied project report (random test split; 10,000 test rows).")
     table=pd.DataFrame({"Model": ["A · All features", "B · Without harvest days"], "RMSE (t/ha)":[0.5211,0.5233],"MAE (t/ha)":[0.4156,0.4175],"R²":[0.9039,0.9031]})
-    st.dataframe(table,hide_index=True,use_container_width=True)
+    st.dataframe(table,hide_index=True,width="stretch")
     st.markdown("#### Crop-wise prediction errors")
     chart=ROOT / "assets" / "crop_wise_performance.png"
-    if chart.exists():st.image(str(chart),use_container_width=True)
+    if chart.exists():st.image(str(chart),width="stretch")
     st.markdown("#### Error diagnostics")
     residual = ROOT / "assets" / "residual_analysis.png"
-    if residual.exists():st.image(str(residual),use_container_width=True)
+    if residual.exists():st.image(str(residual),width="stretch")
     st.info("Model A scores slightly better, while Model B avoids the Days_to_Harvest feature. Accuracy on different farms and future seasons is still untested.")
 
 with about_tab:
