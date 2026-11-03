@@ -168,11 +168,9 @@ with predict_tab:
             "Fertilizer_Used": bool(fertilizer), "Irrigation_Used": bool(irrigation),
             "Weather_Condition": weather,
         }], columns=FEATURES)
-        
-url = "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib"
-digest = "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b"
-  
-        
+        # Public release model. The SHA-256 below was verified against the user's Model B file.
+        url = "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib"
+        digest = "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b"
         try:
             model = load_model(url, digest)
             pred = float(model.predict(input_row)[0])
