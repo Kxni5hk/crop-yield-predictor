@@ -6,7 +6,7 @@ A public educational machine-learning website that estimates crop yield under us
 
 **[Open CropCast AI](https://cropcast-yield-ai.streamlit.app/)**
 
-> **URL maintenance:** This is the original verified public URL. If the Streamlit subdomain is renamed in **App settings → General → App URL**, update the link above to your *actual new working URL*.
+> **Live public deployment:** https://cropcast-yield-ai.streamlit.app/
 
 ## ✅ Features
 
@@ -91,3 +91,10 @@ This is an **academic research prototype**, not a certified agricultural forecas
 ---
 
 **Project:** CropCast AI · Crop Yield Prediction Research Prototype
+
+## 📚 Additional documentation
+
+- [Deployment & Maintenance Guide](docs/DEPLOYMENT.md)
+- [Advanced Development Roadmap](docs/ROADMAP.md)
+- [Portfolio & Project Showcase](docs/SHOWCASE.md)
+- [Start Here](docs/START_HERE.md)
