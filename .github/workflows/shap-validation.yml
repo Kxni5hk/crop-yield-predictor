@@ -31,4 +31,4 @@ jobs:
           curl --fail --location --retry 2 --output model-b.joblib \
             https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib
       - name: Test SHA256-verified actual Model B explanations
-        run: python tests/test_release_model.py model-b.joblib
+        run: PYTHONPATH=. python tests/test_release_model.py model-b.joblib
