@@ -1,0 +1,15 @@
+# CropCast AI — Render Blueprint
+# Uses the same GitHub release-backed model as the Streamlit Community Cloud app.
+services:
+  - type: web
+    name: cropcast-ai-render
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.address 0.0.0.0 --server.port $PORT --server.headless true --browser.gatherUsageStats false
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.11
+      - key: PYTHONUNBUFFERED
+        value: "1"
