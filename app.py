@@ -37,73 +37,9 @@ SOILS = ["Loam", "Clay", "Sandy", "Silt", "Peaty", "Chalky"]
 CROPS = ["Wheat", "Rice", "Maize", "Barley", "Cotton", "Soybean"]
 WEATHER = ["Sunny", "Cloudy", "Rainy"]
 
-CSS = r"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
-:root { color-scheme: dark; }
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-.stApp { background: linear-gradient(150deg,#08151a 1%,#101d21 47%,#0a161a 100%); color: #e7f2eb; }
-.block-container { padding-top: 2rem; max-width: 1250px; padding-bottom: 3rem; }
-[data-testid="stHeader"] { background-color: transparent; }
-h1,h2,h3 { font-family: 'Outfit', sans-serif; letter-spacing: -.03em; }
-h1 { font-weight: 800!important; }
-.hero { border: 1px solid rgba(154,224,170,.18); border-radius: 24px; padding: 34px 38px 37px; background: radial-gradient(circle at 82% 18%,rgba(109,194,128,.17),transparent 40%),linear-gradient(120deg,#122b24,#102021 74%); margin-bottom: 24px; }
-.eyebrow { color:#9bdfaf; font-size:.78rem; text-transform:uppercase; letter-spacing:.16em; font-weight:700; }
-.hero-title { color:#f3fff5; font-size:clamp(2.4rem,5vw,4.2rem); line-height:1.08; font-weight:800; font-family:'Outfit',sans-serif; margin:14px 0; letter-spacing:-.055em; }
-.hero-title .accent {color:#adf1a0;}
-.hero-sub { color:#bacdc3; font-size:1.04rem; line-height:1.7; max-width:730px; }
-.chip { display:inline-block; border:1px solid #345b48; border-radius:25px; padding:6px 11px; font-size:.78rem; color:#bdeac6; margin-right:7px; margin-top:13px; background:#1a372c; }
-.panel {background: #12252a; border:1px solid #284139; border-radius:17px; padding:19px 22px; margin:9px 0 18px; }
-.panel small {color:#a6bdb0;}
-.section-tag {color:#9bd5a2;letter-spacing:.12em;text-transform:uppercase;font-size:.76rem;font-weight:700;}
-.stat-tile {background:linear-gradient(135deg,#142b29,#132127);border:1px solid #29433b;border-radius:16px;padding:20px 23px;min-height:135px}
-.stat-label {color:#a0baae;font-size:.85rem;}
-.stat-value {font-family:'Outfit',sans-serif;color:#edffef;font-size:2.05rem;font-weight:700;line-height:1.35;}
-.stat-foot {font-size:.76rem;color:#8ea99a;}
-.result {padding:25px 28px;border:1px solid #6dae8a;border-radius:18px;background:linear-gradient(135deg,#174b38,#18332d);margin:12px 0 18px;}
-.result-title {color:#a9e5bb;text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;}
-.result-number {font-family:'Outfit',sans-serif;font-size:3.2rem;font-weight:800;color:#f5fff3;letter-spacing:-.035em;}
-.result-unit {color:#c4e6ca;font-size:1rem;}
-[data-testid="stForm"] {border:1px solid #29433b;background:#102328;border-radius:20px;padding:20px 22px;}
-.stButton>button[kind="primary"],.stFormSubmitButton>button {background:#a8efa6!important;color:#14321f!important;border:0;border-radius:10px;font-weight:700;}
-.stButton>button:hover,.stFormSubmitButton>button:hover {filter:brightness(1.07)}
-[data-testid="stMetric"]{background:#142629;padding:16px;border-radius:15px;border:1px solid #2b4740;}
-[data-testid="stMetricValue"] {color:#dfffe1;}
-[data-testid="stTabs"] button {font-weight:600;}
-.stAlert {border-radius:14px;}
-footer {visibility:hidden;}
-/* High-contrast accessibility patch for the dark Streamlit interface. */
-[data-testid="stWidgetLabel"],
-[data-testid="stWidgetLabel"] p,
-[data-testid="stForm"] label,
-[data-testid="stForm"] label p {
-  color: #edf9f0 !important;
-  opacity: 1 !important;
-  font-weight: 600 !important;
-}
-[data-testid="stCaptionContainer"],
-[data-testid="stCaptionContainer"] p {
-  color: #bcd7c7 !important;
-  opacity: 1 !important;
-}
-button[data-baseweb="tab"],
-[data-testid="stTabs"] button[role="tab"] {
-  color: #dceee1 !important;
-  opacity: 1 !important;
-}
-button[data-baseweb="tab"][aria-selected="true"],
-[data-testid="stTabs"] button[aria-selected="true"] {
-  color: #b7f5aa !important;
-  font-weight: 700 !important;
-}
-/* Keep focus borders visible for keyboard users. */
-[data-testid="stForm"] :focus-visible {
-  outline: 2px solid #a8efa6 !important;
-  outline-offset: 2px;
-}
-</style>"""
-st.markdown(CSS, unsafe_allow_html=True)
+from premium_ui import STYLES, brand_banner, hero_banner, metric_cards, workflow_cards, section_heading, result_card, footer
 
+st.markdown(STYLES, unsafe_allow_html=True)
 
 def setting(name: str) -> str:
     # Streamlit secrets work in deployed Streamlit Community Cloud apps.
@@ -155,32 +91,19 @@ def load_model(model_url: str, expected_digest: str):
     return loaded
 
 
-st.markdown("""
-<div class="hero">
-  <div class="eyebrow">🌾 CropCast &nbsp; / &nbsp; AGRICULTURAL INTELLIGENCE</div>
-  <div class="hero-title">Grow smarter with<br><span class="accent">AI-powered yield insights.</span></div>
-  <div class="hero-sub">Estimate crop productivity from rainfall, temperature, soil, farming practices and weather. Powered by a real trained Random Forest model—not hardcoded predictions.</div>
-  <div><span class="chip">✦ Random Forest ML</span><span class="chip">✦ 6 Crops</span><span class="chip">✦ 8 Agronomic Inputs</span></div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(brand_banner(), unsafe_allow_html=True)
+st.markdown(hero_banner(), unsafe_allow_html=True)
+st.markdown(metric_cards(), unsafe_allow_html=True)
+st.markdown(workflow_cards(), unsafe_allow_html=True)
+st.markdown("<div class='cc-step-row'><div class='cc-step'><b>01</b> Set farm conditions</div><div class='cc-step'><b>02</b> Run Model B</div><div class='cc-step'><b>03</b> Compare scenarios</div></div>", unsafe_allow_html=True)
 
-x,y,z = st.columns(3)
-with x:
-    st.markdown('<div class="stat-tile"><div class="stat-label">Model B · Test R²</div><div class="stat-value">0.9031</div><div class="stat-foot">Held-out random test split</div></div>',unsafe_allow_html=True)
-with y:
-    st.markdown('<div class="stat-tile"><div class="stat-label">Model B · RMSE</div><div class="stat-value">0.5233</div><div class="stat-foot">tons / hectare</div></div>',unsafe_allow_html=True)
-with z:
-    st.markdown('<div class="stat-tile"><div class="stat-label">Training examples</div><div class="stat-value">40,000</div><div class="stat-foot">from 50,000 sampled records</div></div>',unsafe_allow_html=True)
-
-st.write("")
 predict_tab, compare_tab, history_tab, performance_tab, about_tab = st.tabs([
     "🌱  Yield Predictor", "🌾  Compare Crops", "🗂️  This Session",
     "📊  Model Performance", "🧭  About the System"
 ])
 
 with predict_tab:
-    st.markdown("### Farm conditions")
-    st.caption("Select conditions based on your farm or planned season. Future weather inputs should be treated as scenarios or forecasts.")
+    st.markdown(section_heading("01 / Your farm profile", "Build a yield scenario", "Choose the agricultural conditions for Model B. Future climate inputs are hypothetical scenarios, not live forecasts."), unsafe_allow_html=True)
     with st.form("yield_form"):
         a,b = st.columns(2,gap="large")
         with a:
@@ -233,7 +156,7 @@ with predict_tab:
         pred = result["yield"]
         if pred < 0:
             st.warning("The model predicted a negative yield. This is not physically meaningful; review the input and model limitations.")
-        st.markdown(f"""<div class="result"><div class="result-title">Estimated yield • {result['crop']}</div><div class="result-number">{pred:,.2f} <span class="result-unit">tons / hectare</span></div><div class="result-unit">≈ {pred*1000:,.0f} kg per hectare &nbsp; · &nbsp; {result['region']} region</div></div>""", unsafe_allow_html=True)
+        st.markdown(result_card(result["crop"], result["region"], pred), unsafe_allow_html=True)
         st.caption("⚠️ Educational model estimate. Not a guarantee, and not independently validated for real farms or future seasons.")
         st.download_button("⬇ Download input and result as CSV", data=result["inputs"].assign(Predicted_Yield_tons_per_hectare=pred).to_csv(index=False), file_name="cropcast_prediction.csv", mime="text/csv")
         with st.expander("📏 Land area & total production · optional", expanded=False):
@@ -283,8 +206,7 @@ with predict_tab:
 
 
 with compare_tab:
-    st.markdown("### 🌾 Compare the six supported crops")
-    st.caption("Experimental comparison: uses the real Model B. These are scenario outputs, not crop suitability, profitability, or farming recommendations.")
+    st.markdown(section_heading("02 / Comparative intelligence", "Explore your crop options", "Compare model predictions for six supported crops with other inputs held constant. This is not suitability or profitability advice."), unsafe_allow_html=True)
     result_for_comparison = st.session_state.get("last_prediction")
     if not result_for_comparison:
         st.info("Generate a yield prediction on the Predictor tab first. The comparison reuses those farm conditions.")
@@ -320,8 +242,7 @@ with compare_tab:
             st.caption("All eight input fields remain fixed except Crop. Model performance in other seasons and fields is unverified.")
 
 with history_tab:
-    st.markdown("### 🗂️ Prediction history — this browser session only")
-    st.caption("Demo-only session history (maximum 25 records). This is NOT an authenticated or persistent account feature.")
+    st.markdown(section_heading("03 / Temporary workspace", "Your session timeline", "Browse up to 25 predictions from this session, export CSV or clear results. No login or persistent user database is connected."), unsafe_allow_html=True)
     history = st.session_state.get("demo_history", [])
     if history:
         history_frame = pd.DataFrame(history)
@@ -336,8 +257,7 @@ with history_tab:
         st.info("Your predictions made in this session will appear here. Refresh or server restart may clear them.")
 
 with performance_tab:
-    st.markdown("### Evidence from model evaluation")
-    st.caption("Values are from the previously supplied project report (random test split; 10,000 test rows).")
+    st.markdown(section_heading("04 / Research integrity", "See the evidence", "Recorded metrics from the original random test split with 10,000 held-out examples. No independent farm validation is claimed."), unsafe_allow_html=True)
     table=pd.DataFrame({"Model": ["A · All features", "B · Without harvest days"], "RMSE (t/ha)":[0.5211,0.5233],"MAE (t/ha)":[0.4156,0.4175],"R²":[0.9039,0.9031]})
     st.dataframe(table,hide_index=True,width="stretch")
     st.markdown("#### Crop-wise prediction errors")
@@ -349,7 +269,7 @@ with performance_tab:
     st.info("Model A scores slightly better, while Model B avoids the Days_to_Harvest feature. Accuracy on different farms and future seasons is still untested.")
 
 with about_tab:
-    st.markdown("### Built for an academic ML project")
+    st.markdown(section_heading("05 / The methodology", "Built on research, not guesses", "Explore the underlying pipeline, supported inputs, evaluation methodology and limitations."), unsafe_allow_html=True)
     st.markdown("""
     **Pipeline:** Agricultural CSV → Cleaning → One-hot encoding + imputation → Random Forest Regressor → Model B prediction.
 
@@ -362,4 +282,4 @@ with about_tab:
     **Model disclosure:** Predictive results come from the trained scikit-learn pipeline. The public site may sleep on a free hosting tier; its first request can take longer.
     """)
 
-st.markdown('<div style="color:#759488;font-size:.78rem;padding:24px 0 3px;text-align:center">CropCast · Crop Yield Prediction Research Prototype · Powered by Python & Random Forest</div>',unsafe_allow_html=True)
+st.markdown(footer(), unsafe_allow_html=True)
