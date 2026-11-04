@@ -298,9 +298,9 @@ if page == "Model A Research":
         "testing, and a trusted downloadable artifact before a real ninth-input prediction can be enabled."
     )
     st.markdown(
-        "Research files: [Full dataset comparison on Google Drive]"
-        "(https://drive.google.com/file/d/1v6YR44CPFBPxap2NAHOF1-6gpvkd5ZQ7/view) · "
-        "[Reproducible Python experiment](https://github.com/Kxni5hk/crop-yield-predictor)"
+        "Research methodology and recorded results: "
+        "[Full-dataset evaluation](https://github.com/Kxni5hk/crop-yield-predictor/blob/main/docs/FULL_DATASET_EVALUATION.md) · "
+        "[Source repository](https://github.com/Kxni5hk/crop-yield-predictor)"
     )
 
 if page == "Batch Studio":
