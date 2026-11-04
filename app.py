@@ -15,6 +15,8 @@ import requests
 import streamlit as st
 from cropcast_v2 import (model_input_frame, compare_supported_crops,
     calculate_area_estimate, prediction_record)
+from batch_tools import MAX_CSV_BYTES, MAX_CSV_ROWS, csv_template, predict_csv_batch
+from weather_context import fetch_city_weather
 
 st.set_page_config(
     page_title="CropCast | AI Yield Intelligence",
@@ -97,9 +99,9 @@ st.markdown(metric_cards(), unsafe_allow_html=True)
 st.markdown(workflow_cards(), unsafe_allow_html=True)
 st.markdown("<div class='cc-step-row'><div class='cc-step'><b>01</b> Set farm conditions</div><div class='cc-step'><b>02</b> Run Model B</div><div class='cc-step'><b>03</b> Compare scenarios</div></div>", unsafe_allow_html=True)
 
-predict_tab, compare_tab, history_tab, performance_tab, about_tab = st.tabs([
-    "🌱  Yield Predictor", "🌾  Compare Crops", "🗂️  This Session",
-    "📊  Model Performance", "🧭  About the System"
+predict_tab, compare_tab, bulk_tab, weather_tab, history_tab, performance_tab, about_tab = st.tabs([
+    "🌱  Predictor", "🌾  Compare Crops", "📑  Bulk CSV",
+    "☁️  Weather Context", "🗂️  Session", "📊  Model Evidence", "🧭  About"
 ])
 
 with predict_tab:
@@ -240,6 +242,104 @@ with compare_tab:
                 mime="text/csv", key="export_crop_comparison"
             )
             st.caption("All eight input fields remain fixed except Crop. Model performance in other seasons and fields is unverified.")
+
+
+with bulk_tab:
+    st.markdown(section_heading(
+        "03 / Research workflows", "Bulk crop yield analysis",
+        "Upload up to 50 validated farm-condition scenarios and receive real Model B predictions in a downloadable table. Uploaded CSV data is not stored on the server."
+    ), unsafe_allow_html=True)
+    st.download_button(
+        "⬇ Download CSV template",
+        data=csv_template(), file_name="cropcast_input_template.csv",
+        mime="text/csv", key="batch_template_download"
+    )
+    st.caption(
+        "Required columns: Region, Soil_Type, Crop, Rainfall_mm, Temperature_Celsius, "
+        "Fertilizer_Used, Irrigation_Used, Weather_Condition. Boolean inputs accept Yes/No or True/False."
+    )
+    uploaded = st.file_uploader(
+        "Choose your agricultural scenarios CSV", type=["csv"],
+        help="Up to 50 data rows and 128 KB. Invalid rows are reported separately.",
+        key="batch_csv_upload"
+    )
+    if uploaded is not None:
+        if uploaded.size > MAX_CSV_BYTES:
+            st.warning("Upload limit is 128 KB. Reduce the file size before continuing.")
+        elif st.button("Run verified batch predictions", key="batch_predict"):
+            try:
+                blob = uploaded.getvalue()
+                batch_model = load_model(
+                    "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib",
+                    "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b",
+                )
+                with st.spinner("Evaluating CSV scenarios…"):
+                    batch_results, batch_errors = predict_csv_batch(batch_model, blob)
+                st.session_state["batch_results"] = batch_results
+                st.session_state["batch_errors"] = batch_errors
+                st.session_state["batch_file_name"] = uploaded.name
+            except (ValueError, RuntimeError) as exc:
+                st.error(str(exc))
+            except Exception:
+                st.error("Bulk prediction is temporarily unavailable. Single prediction still works.")
+        if st.session_state.get("batch_file_name") == uploaded.name:
+            results = st.session_state.get("batch_results")
+            errors = st.session_state.get("batch_errors")
+            if results is not None:
+                st.metric("Valid farm scenarios processed", len(results))
+                if not results.empty:
+                    st.dataframe(results, hide_index=True, width="stretch")
+                    st.download_button(
+                        "⬇ Download batch results CSV",
+                        results.to_csv(index=False).encode("utf-8"),
+                        file_name="cropcast_batch_predictions.csv",
+                        mime="text/csv", key="batch_results_download",
+                    )
+                if errors is not None and not errors.empty:
+                    st.warning(f"{len(errors)} CSV rows could not be used. Fix the reported values and retry.")
+                    st.dataframe(errors, hide_index=True, width="stretch")
+    st.caption(
+        "Predictions are experimental model estimates, not verified agronomic guidance. "
+        "Do not include sensitive personal information in uploaded CSV files."
+    )
+
+with weather_tab:
+    st.markdown(section_heading(
+        "04 / Weather intelligence", "Understand your local weather",
+        "View current conditions and a 5-day forecast from Open-Meteo. "
+        "These observations are informational and are NOT fed into the trained Model B input fields."
+    ), unsafe_allow_html=True)
+    st.caption("Enter a city manually. No GPS permission, account sign-in or personal-location storage is required.")
+    city = st.text_input("City name", placeholder="e.g. Jaipur", max_chars=80, key="forecast_city")
+    if st.button("Get city weather context", key="forecast_lookup"):
+        if not city or len(city.strip()) < 2:
+            st.warning("Please enter a city name with at least two characters.")
+        else:
+            try:
+                with st.spinner("Loading weather source…"):
+                    info = fetch_city_weather(city)
+                st.session_state["weather_context"] = info
+            except ValueError as exc:
+                st.warning(str(exc))
+    weather = st.session_state.get("weather_context")
+    if weather:
+        st.markdown(f"#### {weather['location']}")
+        st.caption(f"Source: {weather['source']} · observed {weather['as_of']} ({weather['timezone']})")
+        w1, w2, w3 = st.columns(3)
+        with w1:
+            st.metric("Current temperature", f"{weather['temperature_c']:.1f} °C")
+        with w2:
+            st.metric("Humidity", f"{weather['humidity_pct']:.0f}%")
+        with w3:
+            st.metric("Wind", f"{weather['wind_kmh']:.1f} km/h")
+        st.write(f"**Current sky conditions:** {weather['conditions']}")
+        forecast_table = pd.DataFrame(weather["forecast"])
+        st.dataframe(forecast_table, hide_index=True, width="stretch")
+        st.bar_chart(forecast_table.set_index("Date")["Precipitation (mm)"])
+        st.caption(
+            "5-day forecast precipitation is NOT the seasonal Rainfall_mm variable used to train the crop-yield model. "
+            "Enter your own agricultural scenario separately in the Predictor tab."
+        )
 
 with history_tab:
     st.markdown(section_heading("03 / Temporary workspace", "Your session timeline", "Browse up to 25 predictions from this session, export CSV or clear results. No login or persistent user database is connected."), unsafe_allow_html=True)
