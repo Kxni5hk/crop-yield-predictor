@@ -95,9 +95,7 @@ def load_model(model_url: str, expected_digest: str):
 
 st.markdown(brand_banner(), unsafe_allow_html=True)
 st.markdown(hero_banner(), unsafe_allow_html=True)
-st.markdown(metric_cards(), unsafe_allow_html=True)
-st.markdown(workflow_cards(), unsafe_allow_html=True)
-st.markdown("<div class='cc-step-row'><div class='cc-step'><b>01</b> Set farm conditions</div><div class='cc-step'><b>02</b> Run Model B</div><div class='cc-step'><b>03</b> Compare scenarios</div></div>", unsafe_allow_html=True)
+st.markdown('<div id="workspace" class="cc-workspace-anchor" aria-hidden="true"></div>', unsafe_allow_html=True)
 
 predict_tab, compare_tab, bulk_tab, weather_tab, history_tab, performance_tab, about_tab = st.tabs([
     "🌱  Predictor", "🌾  Compare Crops", "📑  Bulk CSV",
@@ -106,16 +104,23 @@ predict_tab, compare_tab, bulk_tab, weather_tab, history_tab, performance_tab, a
 
 with predict_tab:
     st.markdown(section_heading("01 / Your farm profile", "Build a yield scenario", "Choose the agricultural conditions for Model B. Future climate inputs are hypothetical scenarios, not live forecasts."), unsafe_allow_html=True)
+    st.markdown(
+        '<div class="cc-step-row" role="list">'
+        '<div class="cc-step" role="listitem"><b>01</b> Select farm conditions</div>'
+        '<div class="cc-step" role="listitem"><b>02</b> Generate prediction</div>'
+        '<div class="cc-step" role="listitem"><b>03</b> Compare scenarios</div>'
+        '</div>', unsafe_allow_html=True
+    )
     with st.form("yield_form"):
         a,b = st.columns(2,gap="large")
         with a:
-            crop = st.selectbox("Crop variety", CROPS, index=0)
-            soil = st.selectbox("Soil type", SOILS, index=0)
-            region = st.selectbox("Agricultural region", REGIONS, index=0)
+            crop = st.selectbox("Crop", CROPS, index=0, help="Choose one of the six crop types supported by the trained model.")
+            soil = st.selectbox("Soil type", SOILS, index=0, help="Select a supported soil category from the research dataset.")
+            region = st.selectbox("Dataset region", REGIONS, index=0, help="North/South/East/West are dataset categories, not precise GPS locations.")
             fertilizer = st.selectbox("Fertilizer used / planned", [True,False], format_func=lambda v: "Yes" if v else "No")
         with b:
-            rainfall = st.number_input("Rainfall (mm)", min_value=100.0, max_value=1000.0, value=550.0, step=10.0)
-            temperature = st.number_input("Temperature (°C)", min_value=15.0, max_value=40.0, value=27.5, step=0.5)
+            rainfall = st.number_input("Rainfall scenario (mm)", min_value=100.0, max_value=1000.0, value=550.0, step=10.0, help="Enter the rainfall quantity corresponding to the model scenario; do not copy a 5-day weather forecast here.")
+            temperature = st.number_input("Temperature scenario (°C)", min_value=15.0, max_value=40.0, value=27.5, step=0.5, help="Model input for your hypothetical conditions; not automatically filled from live weather.")
             weather = st.selectbox("Weather conditions", WEATHER)
             irrigation = st.selectbox("Irrigation used / planned", [True,False], format_func=lambda v: "Yes" if v else "No")
         submitted = st.form_submit_button("✨  Predict crop yield", width="stretch", type="primary")
@@ -151,7 +156,7 @@ with predict_tab:
         except Exception as exc:
             st.error("Could not generate a prediction. Check model configuration and deployment logs.")
             st.code(str(exc))
-            st.info("On Streamlit Cloud, open App settings → Secrets and set MODEL_URL to the public GitHub Release .joblib asset URL. For a local test, put the model next to app.py.")
+            st.info("The application uses the verified Model B GitHub release. If predictions fail repeatedly, review the Render server logs or retry later.")
 
     result = st.session_state.get("last_prediction")
     if result:
@@ -203,8 +208,8 @@ with predict_tab:
                     st.warning("Sensitivity comparison unavailable; your yield prediction remains valid.")
                     st.code(str(exc))
 
-    elif not LOCAL_MODEL.exists() and not setting("MODEL_URL"):
-        st.info("Website design is ready. Add a model-release URL in Streamlit Cloud Secrets to activate live predictions. The app never substitutes fake results.")
+    else:
+        st.caption("Your prediction will appear here after you submit the form. The verified Model B is loaded on first use; no API key or model upload is needed.")
 
 
 with compare_tab:
@@ -342,7 +347,7 @@ with weather_tab:
         )
 
 with history_tab:
-    st.markdown(section_heading("03 / Temporary workspace", "Your session timeline", "Browse up to 25 predictions from this session, export CSV or clear results. No login or persistent user database is connected."), unsafe_allow_html=True)
+    st.markdown(section_heading("05 / Temporary workspace", "Your session timeline", "Browse up to 25 predictions from this session, export CSV or clear results. No login or persistent user database is connected."), unsafe_allow_html=True)
     history = st.session_state.get("demo_history", [])
     if history:
         history_frame = pd.DataFrame(history)
@@ -357,7 +362,8 @@ with history_tab:
         st.info("Your predictions made in this session will appear here. Refresh or server restart may clear them.")
 
 with performance_tab:
-    st.markdown(section_heading("04 / Research integrity", "See the evidence", "Recorded metrics from the original random test split with 10,000 held-out examples. No independent farm validation is claimed."), unsafe_allow_html=True)
+    st.markdown(metric_cards(), unsafe_allow_html=True)
+    st.markdown(section_heading("06 / Research integrity", "See the evidence", "Recorded metrics from the original random test split with 10,000 held-out examples. No independent farm validation is claimed."), unsafe_allow_html=True)
     table=pd.DataFrame({"Model": ["A · All features", "B · Without harvest days"], "RMSE (t/ha)":[0.5211,0.5233],"MAE (t/ha)":[0.4156,0.4175],"R²":[0.9039,0.9031]})
     st.dataframe(table,hide_index=True,width="stretch")
     st.markdown("#### Crop-wise prediction errors")
@@ -369,7 +375,8 @@ with performance_tab:
     st.info("Model A scores slightly better, while Model B avoids the Days_to_Harvest feature. Accuracy on different farms and future seasons is still untested.")
 
 with about_tab:
-    st.markdown(section_heading("05 / The methodology", "Built on research, not guesses", "Explore the underlying pipeline, supported inputs, evaluation methodology and limitations."), unsafe_allow_html=True)
+    st.markdown(workflow_cards(), unsafe_allow_html=True)
+    st.markdown(section_heading("07 / The methodology", "Built on research, not guesses", "Explore the underlying pipeline, supported inputs, evaluation methodology and limitations."), unsafe_allow_html=True)
     st.markdown("""
     **Pipeline:** Agricultural CSV → Cleaning → One-hot encoding + imputation → Random Forest Regressor → Model B prediction.
 

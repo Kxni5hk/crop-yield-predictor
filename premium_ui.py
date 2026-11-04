@@ -113,6 +113,51 @@ a{color:#216643}
 @media(max-width:1000px){.cc-hero{grid-template-columns:1fr;min-height:auto;padding:30px}.cc-visual{min-height:190px}.cc-orbit{width:240px}.cc-sat-one{left:8%}.cc-sat-two{right:8%}}
 @media(max-width:750px){.block-container{padding:1rem .9rem 2.3rem}.cc-hero{border-radius:19px;padding:23px 21px}.cc-hero h1{font-size:2.25rem}.cc-hero p{font-size:.9rem}.cc-visual{display:none}.cc-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cc-workflows{grid-template-columns:1fr;gap:9px}.cc-metric{padding:13px;min-height:106px}.cc-metric-value{font-size:1.7rem}.cc-navbar{padding-bottom:13px}.cc-status small{display:none}.cc-output{padding:18px}.cc-output-value{font-size:2.6rem}[data-testid="stTabs"] button[role="tab"]{font-size:.76rem;padding:8px 11px}}
 @media(prefers-reduced-motion:reduce){.cc-pulse{animation:none!important}*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* v5: task-first compact dashboard layout, tuned from actual desktop screenshots. */
+html{scroll-behavior:smooth}
+.cc-navbar{padding:5px 2px 12px}
+.cc-hero{min-height:220px;grid-template-columns:minmax(0,1.45fr) minmax(210px,.55fr);padding:23px 31px;gap:10px;border-radius:23px;box-shadow:0 14px 30px rgba(22,64,45,.12)}
+.cc-hero h1{font-size:clamp(2rem,3.15vw,3.05rem);line-height:1.13;margin:11px 0 10px;max-width:750px}
+.cc-hero p{font-size:.88rem;line-height:1.57;max-width:685px}
+.cc-eyebrow{font-size:.63rem;padding:6px 10px}
+.cc-hero-tags{margin-top:13px;gap:6px}
+.cc-hero-tags span{font-size:.68rem;padding:5px 9px}
+.cc-visual{min-height:195px}
+.cc-orbit{width:min(100%,218px)}
+.cc-sat{font-size:.58rem;padding:7px 9px;border-radius:10px}
+.cc-sat strong{font-size:.78rem}
+.cc-sat-one{top:11%;left:-5%}
+.cc-sat-two{bottom:8%;right:-4%}
+.cc-sat-caption{font-size:.48rem;bottom:-1%;letter-spacing:.07em}
+.cc-workspace-anchor{height:1px;scroll-margin-top:60px}
+.cc-step-row{margin:8px 0 10px;gap:9px}
+.cc-step{flex:1;min-width:145px;padding:9px 12px;background:#f3f8ef;border-color:#dce9d4}
+.cc-section-title{padding:4px 0;margin:0 0 8px}
+.cc-section-title h2{font-size:clamp(1.45rem,2.2vw,1.85rem)!important;margin:4px 0 3px!important}
+.cc-section-title p{font-size:.82rem}
+[data-testid="stTabs"]>div:first-child{position:static!important;margin:13px 0 10px!important}
+[data-testid="stTabs"] [data-baseweb="tab-list"]{border:1px solid #d8e6d5!important;background:#e9f1e6!important;border-radius:13px!important;gap:3px!important;padding:5px!important;flex-wrap:wrap;overflow:visible!important;box-shadow:0 3px 12px rgba(26,74,50,.03)}
+[data-testid="stTabs"] button[role="tab"]{border:0!important;border-radius:9px!important;min-height:39px!important;padding:8px 13px!important;font-size:.78rem!important;font-weight:800!important;letter-spacing:0!important}
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"]{background:#fff!important;color:#1b6040!important;border:0!important;box-shadow:0 3px 10px rgba(24,67,48,.12)!important}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"],[data-testid="stTabs"] [data-baseweb="tab-border"]{display:none!important;height:0!important}
+[data-testid="stTabs"] [data-baseweb="tab-panel"]{padding-top:4px!important}
+[data-testid="stForm"]{padding:18px 22px 17px!important;box-shadow:0 10px 30px rgba(23,55,34,.045)!important}
+[data-testid="stForm"] [data-testid="stVerticalBlock"]{gap:.65rem!important}
+[data-testid="stForm"] [data-testid="stWidgetLabel"]{padding-bottom:3px!important}
+[data-testid="stSelectbox"] [data-baseweb="select"]>div{background:#f4f8f1!important;border:1px solid #dce8d8!important;border-radius:10px!important;min-height:44px!important}
+[data-testid="stNumberInput"] input{background:#f4f8f1!important;border:1px solid #dce8d8!important;min-height:44px!important}
+[data-testid="stFormSubmitButton"] button{min-height:46px!important}
+[data-testid="stCaptionContainer"] p{color:#61776a!important}
+.cc-metrics-title{margin:14px 0 10px}
+.cc-metric{min-height:105px;padding:15px 17px}
+.cc-metric-value{font-size:clamp(1.65rem,2.2vw,2rem)}
+.cc-workflows{margin-top:10px}
+.cc-workflow{min-height:82px;padding:11px 14px}
+[data-testid="stAlert"]{border:1px solid #d7e6dc;border-radius:13px;box-shadow:none}
+@media(max-width:1000px){.cc-hero{grid-template-columns:1fr;padding:22px 24px}.cc-visual{display:none}}
+@media(max-width:750px){.cc-navbar{padding:1px 0 10px}.cc-hero{padding:19px 18px;border-radius:18px;min-height:auto}.cc-hero h1{font-size:clamp(1.78rem,8vw,2.3rem)}.cc-hero p{font-size:.82rem}.cc-step-row{display:none}.cc-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cc-section-title{padding-top:3px}[data-testid="stTabs"] [data-baseweb="tab-list"]{flex-wrap:nowrap;overflow-x:auto!important;scrollbar-width:thin}[data-testid="stTabs"] button[role="tab"]{padding:8px 10px!important;font-size:.72rem!important}[data-testid="stForm"]{padding:13px 11px!important}.cc-hero-tags span{font-size:.6rem}}
+
 </style>
 """
 
@@ -121,9 +166,9 @@ def brand_banner():
     return """<div class="cc-navbar">
       <div class="cc-brand">
         <span class="cc-logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 27V11M16 19C8 19 5 13 6 6c7 0 11 4 10 13Zm0-3c0-7 4-10 11-10 0 7-4 10-11 10Z" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span><div class="cc-name">crop<span>cast.</span></div><div class="cc-navbar-sub">Field intelligence / Research prototype</div></span>
+        <span><div class="cc-name">crop<span>cast.</span></div><div class="cc-navbar-sub">Yield intelligence / AI research demo</div></span>
       </div>
-      <div class="cc-status"><span class="cc-status-dot"></span> Model B ready <small>· AI research demo</small></div>
+      <div class="cc-status"><span class="cc-status-dot"></span> Verified Model B <small>· Research prototype</small></div>
     </div>"""
 
 
@@ -131,9 +176,9 @@ def hero_banner():
     return """<section class="cc-hero" aria-label="CropCast introduction">
       <div class="cc-hero-left">
         <div class="cc-eyebrow"><i></i> Agriculture meets intelligence</div>
-        <h1>A clearer view of<br><em>what the field could yield.</em></h1>
-        <p>Explore crop productivity using a trained Random Forest model. Compare conditions, test scenarios and understand model evidence—all in one research-ready workspace.</p>
-        <div class="cc-hero-tags"><span>✓ Real model inference</span><span>✧ Six supported crops</span><span>↗ Interactive analysis</span></div>
+        <h1>Explore the future of<br><em>crop yield intelligence.</em></h1>
+        <p>Predict experimental crop yield using a trained Random Forest. Compare farm scenarios, inspect research evidence, and export results from one workspace.</p>
+        <div class="cc-hero-tags"><span>✓ Actual model inference</span><span>✦ 6 crops / 8 features</span><span>↗ Scenario analysis</span></div>
       </div>
       <div class="cc-visual" aria-hidden="true">
         <div class="cc-orbit cc-pulse">
