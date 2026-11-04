@@ -8,6 +8,8 @@ on:
       - 'sensitivity.py'
       - 'cropcast_v2.py'
       - 'premium_ui.py'
+      - 'batch_tools.py'
+      - 'weather_context.py'
       - 'config.toml'
       - '.streamlit/config.toml'
       - 'requirements.txt'
@@ -28,7 +30,7 @@ jobs:
       - name: Install project dependencies
         run: python -m pip install -r requirements.txt
       - name: Verify Python syntax
-        run: python -m compileall -q app.py explainability.py sensitivity.py cropcast_v2.py premium_ui.py tests/
+        run: python -m compileall -q app.py explainability.py sensitivity.py cropcast_v2.py premium_ui.py batch_tools.py weather_context.py tests/
       - name: Run explanation and sensitivity unit tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Download trusted release model
