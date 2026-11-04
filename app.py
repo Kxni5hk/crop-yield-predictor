@@ -217,6 +217,7 @@ with predict_tab:
             if not np.isfinite(pred):
                 raise ValueError("Model returned a non-finite prediction.")
             st.session_state["show_what_if"] = False
+            st.session_state.pop("crop_comparison", None)
             st.session_state["last_prediction"]={"yield": pred,"crop":crop,"region":region,"inputs":input_row}
             # Session-only demo history: no account, no persistent storage.
             record = prediction_record(input_row.iloc[0].to_dict(), pred)
