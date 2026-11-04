@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
+from cropcast_v2 import (model_input_frame, compare_supported_crops,
+    calculate_area_estimate, prediction_record)
 
 st.set_page_config(
     page_title="CropCast | AI Yield Intelligence",
@@ -171,7 +173,10 @@ with z:
     st.markdown('<div class="stat-tile"><div class="stat-label">Training examples</div><div class="stat-value">40,000</div><div class="stat-foot">from 50,000 sampled records</div></div>',unsafe_allow_html=True)
 
 st.write("")
-predict_tab, performance_tab, about_tab = st.tabs(["🌱  Yield Predictor", "📊  Model Performance", "🧭  About the System"])
+predict_tab, compare_tab, history_tab, performance_tab, about_tab = st.tabs([
+    "🌱  Yield Predictor", "🌾  Compare Crops", "🗂️  This Session",
+    "📊  Model Performance", "🧭  About the System"
+])
 
 with predict_tab:
     st.markdown("### Farm conditions")
@@ -197,6 +202,12 @@ with predict_tab:
             "Fertilizer_Used": bool(fertilizer), "Irrigation_Used": bool(irrigation),
             "Weather_Condition": weather,
         }], columns=FEATURES)
+        # Validate the same exact input schema used in training.
+        try:
+            input_row = model_input_frame(input_row.iloc[0].to_dict())
+        except ValueError as validation_error:
+            st.error(str(validation_error))
+            st.stop()
         # Public release model. The SHA-256 below was verified against the user's Model B file.
         url = "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib"
         digest = "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b"
@@ -206,7 +217,12 @@ with predict_tab:
             if not np.isfinite(pred):
                 raise ValueError("Model returned a non-finite prediction.")
             st.session_state["show_what_if"] = False
+            st.session_state.pop("crop_comparison", None)
             st.session_state["last_prediction"]={"yield": pred,"crop":crop,"region":region,"inputs":input_row}
+            # Session-only demo history: no account, no persistent storage.
+            record = prediction_record(input_row.iloc[0].to_dict(), pred)
+            st.session_state.setdefault("demo_history", []).append(record)
+            st.session_state["demo_history"] = st.session_state["demo_history"][-25:]
         except Exception as exc:
             st.error("Could not generate a prediction. Check model configuration and deployment logs.")
             st.code(str(exc))
@@ -220,6 +236,15 @@ with predict_tab:
         st.markdown(f"""<div class="result"><div class="result-title">Estimated yield • {result['crop']}</div><div class="result-number">{pred:,.2f} <span class="result-unit">tons / hectare</span></div><div class="result-unit">≈ {pred*1000:,.0f} kg per hectare &nbsp; · &nbsp; {result['region']} region</div></div>""", unsafe_allow_html=True)
         st.caption("⚠️ Educational model estimate. Not a guarantee, and not independently validated for real farms or future seasons.")
         st.download_button("⬇ Download input and result as CSV", data=result["inputs"].assign(Predicted_Yield_tons_per_hectare=pred).to_csv(index=False), file_name="cropcast_prediction.csv", mime="text/csv")
+        with st.expander("📏 Land area & total production · optional", expanded=False):
+            st.caption("Simple area conversion based on the model's t/ha estimate; not another ML forecast.")
+            area_unit = st.selectbox("Area unit", ["hectares", "acres"], key="area_unit")
+            area_size = st.number_input("Cultivated area", min_value=0.01, max_value=100000.0,
+                                        value=1.0, step=0.5, key="area_size")
+            area_result = calculate_area_estimate(pred, area_size, area_unit)
+            st.metric("Estimated total production", f"{area_result['production_tonnes']:,.2f} tonnes")
+            st.caption(f"Equivalent area: {area_result['area_hectares']:,.3f} hectares; scenario-based estimate only.")
+
         with st.expander("🔎 Explore prediction sensitivity · lightweight", expanded=False):
             st.caption(
                 "Optional one-feature-at-a-time model scenarios. This is not SHAP, "
@@ -255,6 +280,60 @@ with predict_tab:
 
     elif not LOCAL_MODEL.exists() and not setting("MODEL_URL"):
         st.info("Website design is ready. Add a model-release URL in Streamlit Cloud Secrets to activate live predictions. The app never substitutes fake results.")
+
+
+with compare_tab:
+    st.markdown("### 🌾 Compare the six supported crops")
+    st.caption("Experimental comparison: uses the real Model B. These are scenario outputs, not crop suitability, profitability, or farming recommendations.")
+    result_for_comparison = st.session_state.get("last_prediction")
+    if not result_for_comparison:
+        st.info("Generate a yield prediction on the Predictor tab first. The comparison reuses those farm conditions.")
+    else:
+        st.write("**Farm conditions:**", result_for_comparison["region"],
+                 "·", result_for_comparison["inputs"].iloc[0]["Soil_Type"])
+        if st.button("Compare all 6 crops with current conditions", key="compare_all_crops"):
+            try:
+                comparison_model = load_model(
+                    "https://github.com/Kxni5hk/crop-yield-predictor/releases/download/v1.0.1/crop_yield_model_b_for_release.joblib",
+                    "2e3605235e16dd13c382c2c1493e575d4225ad0ee0342f96d22ae5ab358f932b",
+                )
+                comparison = compare_supported_crops(
+                    comparison_model, result_for_comparison["inputs"].iloc[0].to_dict()
+                )
+                st.session_state["crop_comparison"] = comparison
+            except Exception as exc:
+                st.error("Crop comparison unavailable; normal predictions still work.")
+                st.code(str(exc))
+        comparison = st.session_state.get("crop_comparison")
+        if comparison is not None:
+            st.bar_chart(comparison.set_index("Crop")["Estimated yield (t/ha)"])
+            st.dataframe(comparison.style.format({
+                "Estimated yield (t/ha)": "{:.3f}",
+                "Estimated yield (kg/ha)": "{:,.0f}",
+            }), hide_index=True, width="stretch")
+            st.download_button(
+                "⬇ Export crop comparison CSV",
+                comparison.to_csv(index=False),
+                file_name="cropcast_crop_comparison.csv",
+                mime="text/csv", key="export_crop_comparison"
+            )
+            st.caption("All eight input fields remain fixed except Crop. Model performance in other seasons and fields is unverified.")
+
+with history_tab:
+    st.markdown("### 🗂️ Prediction history — this browser session only")
+    st.caption("Demo-only session history (maximum 25 records). This is NOT an authenticated or persistent account feature.")
+    history = st.session_state.get("demo_history", [])
+    if history:
+        history_frame = pd.DataFrame(history)
+        st.dataframe(history_frame, hide_index=True, width="stretch")
+        st.download_button("⬇ Download session history CSV",
+                           history_frame.to_csv(index=False), "cropcast_session_history.csv",
+                           mime="text/csv", key="history_download")
+        if st.button("Clear session history", key="history_clear"):
+            st.session_state["demo_history"] = []
+            st.rerun()
+    else:
+        st.info("Your predictions made in this session will appear here. Refresh or server restart may clear them.")
 
 with performance_tab:
     st.markdown("### Evidence from model evaluation")
