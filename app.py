@@ -17,12 +17,14 @@ from cropcast_v2 import (model_input_frame, compare_supported_crops,
     calculate_area_estimate, prediction_record)
 from batch_tools import MAX_CSV_BYTES, MAX_CSV_ROWS, csv_template, predict_csv_batch
 from weather_context import fetch_city_weather
+from workspace_nav import (WORKSPACE_STYLES, navigation, page_header, home_launchers)
+from model_research import (SOURCE_DESCRIPTION, evaluation_table, harvest_duration_table, model_a_status)
 
 st.set_page_config(
     page_title="CropCast | AI Yield Intelligence",
     page_icon="🌾",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 ROOT = Path(__file__).resolve().parent
@@ -93,16 +95,17 @@ def load_model(model_url: str, expected_digest: str):
     return loaded
 
 
-st.markdown(brand_banner(), unsafe_allow_html=True)
-st.markdown(hero_banner(), unsafe_allow_html=True)
-st.markdown('<div id="workspace" class="cc-workspace-anchor" aria-hidden="true"></div>', unsafe_allow_html=True)
+st.markdown(WORKSPACE_STYLES, unsafe_allow_html=True)
+page = navigation()
+st.markdown(page_header(page), unsafe_allow_html=True)
 
-predict_tab, compare_tab, bulk_tab, weather_tab, history_tab, performance_tab, about_tab = st.tabs([
-    "🌱  Predictor", "🌾  Compare Crops", "📑  Bulk CSV",
-    "☁️  Weather Context", "🗂️  Session", "📊  Model Evidence", "🧭  About"
-])
+if page == "Overview":
+    st.markdown(hero_banner(), unsafe_allow_html=True)
+    home_launchers()
+    st.markdown(metric_cards(), unsafe_allow_html=True)
+    st.markdown(workflow_cards(), unsafe_allow_html=True)
 
-with predict_tab:
+if page == "Yield Predictor":
     st.markdown(section_heading("01 / Your farm profile", "Build a yield scenario", "Choose the agricultural conditions for Model B. Future climate inputs are hypothetical scenarios, not live forecasts."), unsafe_allow_html=True)
     st.markdown(
         '<div class="cc-step-row" role="list">'
@@ -212,7 +215,7 @@ with predict_tab:
         st.caption("Your prediction will appear here after you submit the form. The verified Model B is loaded on first use; no API key or model upload is needed.")
 
 
-with compare_tab:
+if page == "Crop Scenarios":
     st.markdown(section_heading("02 / Comparative intelligence", "Explore your crop options", "Compare model predictions for six supported crops with other inputs held constant. This is not suitability or profitability advice."), unsafe_allow_html=True)
     result_for_comparison = st.session_state.get("last_prediction")
     if not result_for_comparison:
@@ -249,7 +252,58 @@ with compare_tab:
             st.caption("All eight input fields remain fixed except Crop. Model performance in other seasons and fields is unverified.")
 
 
-with bulk_tab:
+if page == "Model A Research":
+    st.markdown(
+        section_heading(
+            "03 / Harvest-duration research",
+            "Two model paths. One transparent decision.",
+            "Model B supports early-stage eight-input scenarios. Model A includes Days_to_Harvest and has "
+            "slightly better full-dataset holdout scores, but does not have a memory-tested production artifact."
+        ), unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div class="cc-method-note"><b>Why two models?</b> Early in the season, observed '
+        'Days_to_Harvest may not be known. Model A is useful for analyzing scenarios where '
+        'that ninth input is available or estimated; Model B needs only eight fields.</div>',
+        unsafe_allow_html=True
+    )
+    st.info(model_a_status())
+    a_col, b_col = st.columns(2)
+    with a_col:
+        st.metric("Model A · research R²", "0.91135", help="Nine-feature model, 1M-row held-out experiment")
+    with b_col:
+        st.metric("Model B · research R²", "0.91111", help="Eight-feature newly trained 1M-row model; not the deployed release")
+    st.markdown("#### One-million-row experiment")
+    table = evaluation_table()
+    st.dataframe(table, hide_index=True, width="stretch")
+    st.download_button(
+        "⬇ Export full dataset comparison",
+        data=table.to_csv(index=False).encode("utf-8"),
+        file_name="cropcast_1m_model_research.csv", mime="text/csv", key="research_export"
+    )
+    st.caption(SOURCE_DESCRIPTION)
+    st.markdown("#### Harvest-duration ranges in the actual dataset")
+    duration = harvest_duration_table()
+    st.dataframe(duration, hide_index=True, width="stretch")
+    st.bar_chart(duration.set_index("Crop")["Median (days)"])
+    st.caption(
+        "Percentiles and medians describe the recorded Days_to_Harvest column; "
+        "they are NOT model predictions, harvesting schedules, or recommendations."
+    )
+    st.markdown("#### Deployment decision")
+    st.warning(
+        "The live app continues to use the old checksum-verified Model B because its 512 MiB "
+        "Render Free instance previously suffered out-of-memory restarts. "
+        "The full-data Model A file requires version compatibility checks, production memory "
+        "testing, and a trusted downloadable artifact before a real ninth-input prediction can be enabled."
+    )
+    st.markdown(
+        "Research files: [Full dataset comparison on Google Drive]"
+        "(https://drive.google.com/file/d/1v6YR44CPFBPxap2NAHOF1-6gpvkd5ZQ7/view) · "
+        "[Reproducible Python experiment](https://github.com/Kxni5hk/crop-yield-predictor)"
+    )
+
+if page == "Batch Studio":
     st.markdown(section_heading(
         "03 / Research workflows", "Bulk crop yield analysis",
         "Upload up to 50 validated farm-condition scenarios and receive real Model B predictions in a downloadable table. Uploaded CSV data is not stored on the server."
@@ -308,7 +362,7 @@ with bulk_tab:
         "Do not include sensitive personal information in uploaded CSV files."
     )
 
-with weather_tab:
+if page == "Weather Context":
     st.markdown(section_heading(
         "04 / Weather intelligence", "Understand your local weather",
         "View current conditions and a 5-day forecast from Open-Meteo. "
@@ -346,7 +400,7 @@ with weather_tab:
             "Enter your own agricultural scenario separately in the Predictor tab."
         )
 
-with history_tab:
+if page == "Session History":
     st.markdown(section_heading("05 / Temporary workspace", "Your session timeline", "Browse up to 25 predictions from this session, export CSV or clear results. No login or persistent user database is connected."), unsafe_allow_html=True)
     history = st.session_state.get("demo_history", [])
     if history:
@@ -361,7 +415,7 @@ with history_tab:
     else:
         st.info("Your predictions made in this session will appear here. Refresh or server restart may clear them.")
 
-with performance_tab:
+if page == "Research & About":
     st.markdown(metric_cards(), unsafe_allow_html=True)
     st.markdown(section_heading("06 / Research integrity", "See the evidence", "Recorded metrics from the original random test split with 10,000 held-out examples. No independent farm validation is claimed."), unsafe_allow_html=True)
     table=pd.DataFrame({"Model": ["A · All features", "B · Without harvest days"], "RMSE (t/ha)":[0.5211,0.5233],"MAE (t/ha)":[0.4156,0.4175],"R²":[0.9039,0.9031]})
@@ -374,7 +428,7 @@ with performance_tab:
     if residual.exists():st.image(str(residual),width="stretch")
     st.info("Model A scores slightly better, while Model B avoids the Days_to_Harvest feature. Accuracy on different farms and future seasons is still untested.")
 
-with about_tab:
+if page == "Research & About":
     st.markdown(workflow_cards(), unsafe_allow_html=True)
     st.markdown(section_heading("07 / The methodology", "Built on research, not guesses", "Explore the underlying pipeline, supported inputs, evaluation methodology and limitations."), unsafe_allow_html=True)
     st.markdown("""
