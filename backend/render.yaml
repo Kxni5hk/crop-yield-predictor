@@ -1,0 +1,14 @@
+# Review-only draft. Do not apply without explicit hosting approval.
+services:
+  - type: web
+    name: cropcast-model-b-staging
+    runtime: docker
+    branch: staging/model-b-api
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    autoDeployTrigger: 'off'
+    healthCheckPath: /ready
+    envVars:
+      - key: INFERENCE_TOKEN
+        sync: false
