@@ -56,6 +56,13 @@ def setting(name: str) -> str:
     return os.environ.get(name, "").strip()
 
 
+
+@st.cache_data(ttl=900, max_entries=128, show_spinner=False)
+def cached_city_weather(city_name: str):
+    """Cache successful provider lookups for 15 minutes across Streamlit sessions."""
+    return fetch_city_weather(city_name)
+
+
 @st.cache_resource(show_spinner="Loading the trained Random Forest model…")
 def load_model(model_url: str, expected_digest: str):
     if LOCAL_MODEL.exists():
@@ -370,15 +377,20 @@ if page == "Weather Context":
     ), unsafe_allow_html=True)
     st.caption("Enter a city manually. No GPS permission, account sign-in or personal-location storage is required.")
     city = st.text_input("City name", placeholder="e.g. Jaipur", max_chars=80, key="forecast_city")
+    city_key = city.strip().casefold()
+    if st.session_state.get("weather_context_city") != city_key:
+        st.session_state.pop("weather_context", None)
     if st.button("Get city weather context", key="forecast_lookup"):
         if not city or len(city.strip()) < 2:
             st.warning("Please enter a city name with at least two characters.")
         else:
             try:
                 with st.spinner("Loading weather source…"):
-                    info = fetch_city_weather(city)
+                    info = cached_city_weather(city_key)
                 st.session_state["weather_context"] = info
+                st.session_state["weather_context_city"] = city_key
             except ValueError as exc:
+                st.session_state.pop("weather_context", None)
                 st.warning(str(exc))
     weather = st.session_state.get("weather_context")
     if weather:

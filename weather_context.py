@@ -5,11 +5,16 @@ No GPS, user account, tokens or permanent storage are involved.
 """
 from __future__ import annotations
 
+import logging
 import math
+import time
+
 import requests
 
 GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+LOGGER = logging.getLogger(__name__)
+RETRYABLE_STATUSES = {500, 502, 503, 504}
 
 
 def _number(value, key):
@@ -41,49 +46,104 @@ def weather_label(code):
     return "Mixed conditions"
 
 
+
+def _request_json(url, params, timeout, stage):
+    """Retry one transient failure; respect 429 instead of hammering the API."""
+    for attempt in range(2):
+        try:
+            response = requests.get(url, params=params, timeout=timeout)
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ValueError("Weather provider returned malformed data.")
+            return payload
+        except requests.HTTPError as exc:
+            response = exc.response
+            status = getattr(response, "status_code", None)
+            LOGGER.warning("Weather provider HTTP error; stage=%s status=%s", stage, status)
+            if status == 429:
+                headers = getattr(response, "headers", {}) or {}
+                wait_value = headers.get("Retry-After", "")
+                try:
+                    wait_seconds = int(float(wait_value))
+                except (TypeError, ValueError, OverflowError):
+                    wait_seconds = 0
+                wait_hint = (
+                    f"Retry after about {wait_seconds} seconds. "
+                    if 0 < wait_seconds <= 86400 else "Please try again later. "
+                )
+                raise ValueError(
+                    "Weather provider is rate limiting requests (HTTP 429). "
+                    + wait_hint + "Crop yield predictions remain available."
+                ) from exc
+            if status in RETRYABLE_STATUSES and attempt == 0:
+                time.sleep(0.4)
+                continue
+            raise ValueError(
+                "Weather service is unavailable right now. "
+                "Please try again later; crop yield predictions remain available."
+            ) from exc
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            LOGGER.warning("Weather provider network error; stage=%s type=%s", stage, type(exc).__name__)
+            if attempt == 0:
+                time.sleep(0.4)
+                continue
+            raise ValueError(
+                "Weather service is unavailable due to a connection problem. "
+                "Please try again later; crop yield predictions remain available."
+            ) from exc
+        except requests.RequestException as exc:
+            LOGGER.warning("Weather provider request error; stage=%s type=%s", stage, type(exc).__name__)
+            raise ValueError(
+                "Weather service is unavailable right now. "
+                "Please try again later; crop yield predictions remain available."
+            ) from exc
+        except ValueError as exc:
+            raise ValueError("Weather provider returned malformed data. Please try again later.") from exc
+    raise ValueError("Weather service is unavailable. Crop yield predictions remain available.")
+
+
 def fetch_city_weather(city: str):
     """Return first clearly labeled matching city and a five-day forecast."""
     if not isinstance(city, str) or not (2 <= len(city.strip()) <= 80):
         raise ValueError("Enter a city name with 2–80 characters.")
     city = city.strip()
-    try:
-        geocode_response = requests.get(
-            GEOCODE_URL,
-            params={"name": city, "count": 3, "language": "en", "format": "json"},
-            timeout=(4, 10),
-        )
-        geocode_response.raise_for_status()
-        geodata = geocode_response.json()
-        matches = geodata.get("results", []) if isinstance(geodata, dict) else []
-        if not matches:
-            raise ValueError("City not found. Try a more specific name such as 'Jaipur, India'.")
-        location = matches[0]
-        latitude = _number(location.get("latitude"), "latitude")
-        longitude = _number(location.get("longitude"), "longitude")
-        if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
-            raise ValueError("Weather provider returned invalid coordinates.")
-
-        weather_response = requests.get(
-            FORECAST_URL,
-            params={
-                "latitude": latitude,
-                "longitude": longitude,
-                "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code",
-                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
-                "forecast_days": 5,
-                "timezone": "auto",
-            },
-            timeout=(4, 12),
-        )
-        weather_response.raise_for_status()
-        data = weather_response.json()
-    except requests.RequestException as exc:
-        raise ValueError("Weather service is unavailable. Prediction tools remain usable.") from exc
-    except (KeyError, TypeError, IndexError, AttributeError) as exc:
-        raise ValueError("Weather provider returned incomplete data.") from exc
+    geodata = _request_json(
+        GEOCODE_URL,
+        {"name": city, "count": 3, "language": "en", "format": "json"},
+        (4, 10),
+        "geocoding",
+    )
+    matches = geodata.get("results", [])
+    if not isinstance(matches, list):
+        raise ValueError("Weather provider returned incomplete city data.")
+    if not matches:
+        raise ValueError("City not found. Try a more specific city name such as 'Jaipur'.")
+    location = matches[0]
+    if not isinstance(location, dict):
+        raise ValueError("Weather provider returned incomplete city data.")
+    latitude = _number(location.get("latitude"), "latitude")
+    longitude = _number(location.get("longitude"), "longitude")
+    if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+        raise ValueError("Weather provider returned invalid coordinates.")
+    data = _request_json(
+        FORECAST_URL,
+        {
+            "latitude": latitude,
+            "longitude": longitude,
+            "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code",
+            "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+            "forecast_days": 5,
+            "timezone": "auto",
+        },
+        (4, 12),
+        "forecast",
+    )
 
     current = data.get("current", {})
     daily = data.get("daily", {})
+    if not isinstance(current, dict) or not isinstance(daily, dict):
+        raise ValueError("Weather provider returned incomplete data.")
     dates = daily.get("time", [])
     highs = daily.get("temperature_2m_max", [])
     lows = daily.get("temperature_2m_min", [])

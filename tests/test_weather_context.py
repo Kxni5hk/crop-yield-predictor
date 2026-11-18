@@ -5,8 +5,13 @@ import requests
 from weather_context import fetch_city_weather, weather_label
 
 class Response:
-    def __init__(self, data): self.data = data
-    def raise_for_status(self): pass
+    def __init__(self, data, status=200, headers=None):
+        self.data = data
+        self.status_code = status
+        self.headers = headers or {}
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(response=self)
     def json(self): return self.data
 
 class WeatherTests(unittest.TestCase):
@@ -40,6 +45,36 @@ class WeatherTests(unittest.TestCase):
     def test_network_error_is_not_fatal_to_predictor(self, get):
         get.side_effect = requests.Timeout("timed out")
         with self.assertRaisesRegex(ValueError, "unavailable"):
+            fetch_city_weather("Jaipur")
+
+
+    @patch("weather_context.time.sleep")
+    @patch("weather_context.requests.get")
+    def test_429_includes_retry_after_without_extra_requests(self, get, sleep):
+        get.return_value = Response({}, status=429, headers={"Retry-After": "60"})
+        with self.assertRaisesRegex(ValueError, "429.*60 seconds"):
+            fetch_city_weather("Jaipur")
+        self.assertEqual(get.call_count, 1)
+        sleep.assert_not_called()
+
+    @patch("weather_context.time.sleep")
+    @patch("weather_context.requests.get")
+    def test_transient_503_recovers(self, get, sleep):
+        location = {"results": [{"name":"Jaipur","country":"India","latitude":26.9,"longitude":75.8}]}
+        forecast = {"timezone":"Asia/Kolkata",
+            "current":{"time":"2026-11-04T14:00","temperature_2m":24,
+                       "relative_humidity_2m":52,"wind_speed_10m":9,"weather_code":2},
+            "daily":{"time":["2026-11-04"],"temperature_2m_max":[29],
+                     "temperature_2m_min":[18],"precipitation_sum":[0]}}
+        get.side_effect = [Response({}, status=503), Response(location), Response(forecast)]
+        self.assertEqual(fetch_city_weather("Jaipur")["location"], "Jaipur, India")
+        self.assertEqual(get.call_count, 3)
+        sleep.assert_called_once()
+
+    @patch("weather_context.requests.get")
+    def test_malformed_provider_json(self, get):
+        get.return_value = Response(["unexpected", "list"])
+        with self.assertRaisesRegex(ValueError, "malformed"):
             fetch_city_weather("Jaipur")
 
 if __name__ == "__main__":
