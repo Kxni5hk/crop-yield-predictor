@@ -372,7 +372,7 @@ if page == "Batch Studio":
 if page == "Weather Context":
     st.markdown(section_heading(
         "04 / Weather intelligence", "Understand your local weather",
-        "View current conditions and a 5-day forecast from Open-Meteo. "
+        "View forecast conditions and a 5-day outlook from Open-Meteo, with MET Norway backup when rate-limited. "
         "These observations are informational and are NOT fed into the trained Model B input fields."
     ), unsafe_allow_html=True)
     st.caption("Enter a city manually. No GPS permission, account sign-in or personal-location storage is required.")
@@ -395,18 +395,25 @@ if page == "Weather Context":
     weather = st.session_state.get("weather_context")
     if weather:
         st.markdown(f"#### {weather['location']}")
-        st.caption(f"Source: {weather['source']} · observed {weather['as_of']} ({weather['timezone']})")
+        st.caption(f"Source: {weather['source']} · data time {weather['as_of']} ({weather['timezone']})")
+        if weather.get("backup_source"):
+            st.caption(
+                "Backup forecast: MET Norway Locationforecast, adapted into local-day summaries. "
+                "Daily precipitation is approximate and may span day boundaries. "
+                "[Data attribution and CC BY 4.0 licence](https://creativecommons.org/licenses/by/4.0/)."
+            )
         w1, w2, w3 = st.columns(3)
         with w1:
-            st.metric("Current temperature", f"{weather['temperature_c']:.1f} °C")
+            st.metric("Forecast temperature" if weather.get("backup_source") else "Current temperature", f"{weather['temperature_c']:.1f} °C")
         with w2:
             st.metric("Humidity", f"{weather['humidity_pct']:.0f}%")
         with w3:
             st.metric("Wind", f"{weather['wind_kmh']:.1f} km/h")
-        st.write(f"**Current sky conditions:** {weather['conditions']}")
+        st.write(f"**Sky conditions:** {weather['conditions']}")
         forecast_table = pd.DataFrame(weather["forecast"])
         st.dataframe(forecast_table, hide_index=True, width="stretch")
-        st.bar_chart(forecast_table.set_index("Date")["Precipitation (mm)"])
+        if forecast_table["Precipitation (mm)"].notna().any():
+            st.bar_chart(forecast_table.set_index("Date")["Precipitation (mm)"])
         st.caption(
             "5-day forecast precipitation is NOT the seasonal Rainfall_mm variable used to train the crop-yield model. "
             "Enter your own agricultural scenario separately in the Predictor tab."
